@@ -1,0 +1,206 @@
+import random
+import pygame
+
+# 游戏初始化
+pygame.init()
+
+# 定义游戏界面大小参数
+SCREEN_WIDTH= 800
+SCREEN_HEIGHT= 600
+#色彩定义
+WHITE=(255,255,255)
+GREEN=(0,255,0)
+RED=(255,0,0)
+YELLOW=(255,255,0)
+
+#贪吃蛇方格大小
+GRID_SIZE=20
+#定义方向
+UP=0
+DOWN=1
+LEFT=2
+RIGHT=3
+
+# 定义游戏状态
+START=0
+PLAYING=1
+GAME_OVER=2
+
+# 定义初始分值
+score=0
+
+#创建窗口
+screen=pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
+pygame.display.set_caption('Snake Game')
+#设置游戏窗口图标
+icon=pygame.image.load('snake.png')
+pygame.display.set_icon(icon)
+
+#定义暂停按钮矩形范围
+pause_button_rect=pygame.Rect(600,10,100,30)
+
+#创建计时器
+clock=pygame.time.Clock()
+
+
+#绘制文字函数
+def draw_text(text,font,color,x,y):
+    surface=font.render(text,True,color)
+    #对上面窗口对象进行参数设置
+    screen.blit(surface,(x,y))
+
+#绘制分数的函数
+def draw_score(score):
+    draw_text("Score: "+str(score),pygame.font.Font(None,24),YELLOW,10,10)
+
+#绘制游戏界面格子
+def draw_grid():
+    for x in range(0,SCREEN_WIDTH,GRID_SIZE):
+         pygame.draw.line(screen,WHITE,(x,0),(x,SCREEN_HEIGHT))
+
+    for y in range(0,SCREEN_HEIGHT,GRID_SIZE):
+         pygame.draw.line(screen,WHITE,(0,y),(SCREEN_WIDTH,y))
+
+#绘制暂停按钮
+def draw_pause_button(paused):
+    if paused:
+        pygame.draw.rect(screen,WHITE,pause_button_rect)
+        draw_text("Resume",pygame.font.Font(None,24),RED,620,18)
+    else:
+        pygame.draw.rect(screen,WHITE,pause_button_rect)
+        draw_text("Pause", pygame.font.Font(None, 24), RED, 630, 18)
+    pygame.display.update()
+
+# 绘制贪吃蛇
+def draw_snake(snake):
+    for segment in snake:
+        pygame.draw.rect(screen,GREEN,(segment[0],segment[1],GRID_SIZE,GRID_SIZE))
+
+# 生成一个新的食物
+def spawn_food():
+    return (random.randint(0,SCREEN_WIDTH//GRID_SIZE-1)*GRID_SIZE,
+            random.randint(0,SCREEN_HEIGHT//GRID_SIZE-1)*GRID_SIZE)
+
+#绘制食物
+def draw_food(food):
+    pygame.draw.rect(screen,RED,(food[0],food[1],GRID_SIZE,GRID_SIZE))
+
+
+#移动贪吃蛇
+def move_snake(snake,direction):
+    head_x,head_y=snake[0]
+    if direction==UP:
+        head_y-=GRID_SIZE
+    elif direction==DOWN:
+        head_y += GRID_SIZE
+    elif direction==LEFT:
+        head_x -= GRID_SIZE
+    elif direction==RIGHT:
+        head_x += GRID_SIZE
+    #新的蛇头位置
+    new_head=(head_x,head_y)
+
+    #添加新的蛇头并删除尾部的位置
+    snake.insert(0,new_head)
+    snake.pop()
+
+def check_collision(snake):
+     head=snake[0] #蛇头的坐标位置
+     # 检查蛇头是否碰撞到屏幕的四壁
+     if head[0]<0 or head[0]>=SCREEN_WIDTH or head[1]<0 or head[1]>=SCREEN_HEIGHT:
+         return  True
+     if head in snake[1:]:
+            # 判断蛇的头部坐标是否包含在头部之外的所有身子的坐标内
+         return  True
+     return False
+
+#游戏主函数
+def main():
+    global score,game_state
+    snake=[(SCREEN_WIDTH//2,SCREEN_HEIGHT//2)] #蛇的初始化位置在屏幕中间
+    direction=RIGHT
+    food=spawn_food()
+    game_state=START
+    paused=False
+    while True:
+        for event in pygame.event.get():
+          if event.type==pygame.QUIT:
+            pygame.quit()
+            quit()
+          if event.type==pygame.KEYDOWN:
+               if event.key==pygame.K_SPACE: #空格键操作
+                   if game_state==START or game_state==GAME_OVER:
+                       #游戏第一次刚刚开始或者失败了以后又开始的状态
+                      snake=[(SCREEN_WIDTH//2,SCREEN_HEIGHT//2)]
+                      direction=RIGHT
+                      food=spawn_food()
+                      game_state=PLAYING
+                      score=0
+                   else:
+                       paused=not paused
+               elif event.key==pygame.K_UP:
+                    if direction!=DOWN:
+                        direction=UP
+               elif event.key==pygame.K_DOWN:
+                   if direction != UP:
+                       direction = DOWN
+               elif event.key==pygame.K_LEFT:
+                   if direction != RIGHT:
+                       direction = LEFT
+               elif event.key==pygame.K_RIGHT:
+                   if direction != LEFT:
+                       direction = RIGHT
+          if event.type==pygame.MOUSEBUTTONDOWN:
+              if pause_button_rect.collidepoint(event.pos):
+                  paused=not paused
+        if paused:
+            draw_pause_button(paused)
+            continue
+        if game_state==PLAYING:
+            move_snake(snake,direction)
+            if snake[0]==food:
+                   snake.append((0,0))
+                   food=spawn_food()
+                   score+=10
+            if check_collision(snake):
+                game_state=GAME_OVER
+        screen.fill((0,0,0))
+        draw_grid()
+        if game_state==START:
+            draw_text("Press Space To Start ",pygame.font.Font(None,40),YELLOW,250,300)
+        elif game_state==GAME_OVER:
+            draw_text("Game OVer!Press Space To Restart ",pygame.font.Font(None,40),YELLOW,150,200)
+            #如果游戏结束 显示最终得分
+            draw_text("Your Score :" +str(score),pygame.font.Font(None,60),YELLOW,250,300)
+        else:
+            draw_snake(snake)
+            draw_food(food)
+            draw_score(score)
+        draw_pause_button(paused)
+        pygame.display.update()
+
+        clock.tick(5)
+
+
+if __name__=='__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
