@@ -1,0 +1,70 @@
+{
+	"log": {
+	        "error": "/root/xray_1.8.4/error.log",
+                "access": "/root/xray_1.8.4/access.log",
+		"loglevel": "warning"
+	},
+	"routing": {
+		"domainStrategy": "IPIfNonMatch",
+		"rules": [{
+			"type": "field",
+			"ip": [
+				"geoip:cn",
+				"geoip:private"
+			],
+			"outboundTag": "block"
+		}]
+	},
+	"inbounds": [{
+		"listen": "0.0.0.0",
+		"port": 自定义端口，注意和客户端一致,
+		"protocol": "vless",
+		"settings": {
+			"clients": [{
+				"id": "随机生成的uuid码即可",
+				"flow": "xtls-rprx-vision"
+			}],
+			"decryption": "none"
+		},
+		"streamSettings": {
+			"network": "tcp",
+			"security": "reality",
+			"realitySettings": {
+				"dest": "www.amazon.cn:443",
+				"serverNames": [
+					"www.amazon.cn"
+				],
+                                "fingerprint": "chrome",
+				"privateKey": "根据xray生成私钥，注意客户端填写公钥，命令./xray x25519 ",
+				"shortIds": [
+					""
+				]
+			}
+		},
+		"sniffing": {
+			"enabled": true,
+			"destOverride": [
+				"http",
+				"tls",
+				"quic"
+			]
+		}
+	}],
+	"outbounds": [{
+			"protocol": "freedom",
+			"tag": "direct"
+		},
+		{
+			"protocol": "blackhole",
+			"tag": "block"
+		}
+	],
+	"policy": {
+		"levels": {
+			"0": {
+				"handshake": 2,
+				"connIdle": 120
+			}
+		}
+	}
+}
